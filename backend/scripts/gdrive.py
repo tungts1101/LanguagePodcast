@@ -1,31 +1,54 @@
 #!/usr/bin/env python3
 """
-Google Drive utility for uploading and downloading audio samples.
+Google Drive utility — sync files between local backend/ and the shared Drive folder.
 
 Target folder: https://drive.google.com/drive/folders/19JY_X26pjwDYoe3iKuZ1AJTgRh6Dt8Yr
 
-Authentication (OAuth2 — uses your Google account's storage quota):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  list
+      Show all files in the Drive folder (recursive).
+
+  download <filename>
+      Download a file by name. The local path mirrors the Drive folder
+      structure (e.g. data/samples/lesson1.mp3 in Drive → saved to
+      backend/data/samples/lesson1.mp3 locally).
+
+  download-all [extension]
+      Download all files with the given extension (default: .mp3).
+      Each file is saved mirroring the Drive folder structure locally.
+      Example: python scripts/gdrive.py download-all .json
+
+  upload <local-path>
+      Upload a local file to Drive, mirroring the local folder structure.
+      Path is relative to backend/ (e.g. data/samples/lesson1.json).
+      If a file with the same name already exists in Drive it is updated.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  python scripts/gdrive.py list
+  python scripts/gdrive.py download lesson1.mp3
+  python scripts/gdrive.py download lesson1_pinyin.json
+  python scripts/gdrive.py download-all .json
+  python scripts/gdrive.py upload data/samples/lesson1.json
+  python scripts/gdrive.py upload data/samples/lesson1_en.json
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FIRST-TIME AUTH SETUP (OAuth2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   1. Go to https://console.cloud.google.com/
   2. Create a project → Enable "Google Drive API"
   3. APIs & Services → Credentials → Create Credentials → OAuth client ID
      → Application type: Desktop app → Download JSON
-  4. Save the downloaded file as: backend/credentials/oauth_client.json
-  5. First run will print a URL — open it in your browser, approve access,
-     then paste the authorization code back into the terminal.
-     A token is saved to backend/credentials/token.json for future runs.
-
-Usage:
-  # List files in the folder
-  python scripts/gdrive.py list
-
-  # Download a file by name
-  python scripts/gdrive.py download lesson1.mp3
-
-  # Download all mp3 files
-  python scripts/gdrive.py download-all
-
-  # Upload a file
-  python scripts/gdrive.py upload data/samples/lesson1.json
+  4. Save it as: backend/credentials/oauth_client.json
+  5. On first run, a URL is printed — open it in your browser, approve
+     access, then paste the redirect URL back into the terminal.
+     Token is saved to backend/credentials/token.json for future runs.
 """
 
 import sys
