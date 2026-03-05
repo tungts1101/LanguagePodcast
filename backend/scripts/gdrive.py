@@ -51,8 +51,11 @@ Target folder: https://drive.google.com/drive/folders/19JY_X26pjwDYoe3iKuZ1AJTgR
      Token is saved to backend/credentials/token.json for future runs.
 """
 
+# PYTHON_ARGCOMPLETE_OK
 import sys
 import mimetypes
+import argparse
+import argcomplete
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
@@ -278,24 +281,35 @@ def cmd_upload(local_path_str: str):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(0)
+    parser = argparse.ArgumentParser(
+        prog="gdrive",
+        description="Sync files between local backend/ and Google Drive.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
 
-    cmd = sys.argv[1]
+    sub.add_parser("list", help="List all files in the Drive folder")
 
-    if cmd == "list":
+    p_dl = sub.add_parser("download", help="Download a file by relative path")
+    p_dl.add_argument("file_path", help="Relative path in Drive (e.g. data/samples/lesson1.mp3)")
+
+    p_da = sub.add_parser("download-all", help="Download all files with a given extension")
+    p_da.add_argument("extension", nargs="?", default=".mp3",
+                      help="File extension to filter by (default: .mp3)")
+
+    p_ul = sub.add_parser("upload", help="Upload a local file to Drive")
+    p_ul.add_argument("file_path", help="Local path relative to backend/ (e.g. data/samples/lesson1.json)")
+
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+
+    if args.command == "list":
         cmd_list()
-    elif cmd == "download" and len(sys.argv) == 3:
-        cmd_download(sys.argv[2])
-    elif cmd == "download-all":
-        ext = sys.argv[2] if len(sys.argv) > 2 else ".mp3"
-        cmd_download_all(ext)
-    elif cmd == "upload" and len(sys.argv) == 3:
-        cmd_upload(sys.argv[2])
-    else:
-        print(__doc__)
-        sys.exit(1)
+    elif args.command == "download":
+        cmd_download(args.file_path)
+    elif args.command == "download-all":
+        cmd_download_all(args.extension)
+    elif args.command == "upload":
+        cmd_upload(args.file_path)
 
 
 if __name__ == "__main__":

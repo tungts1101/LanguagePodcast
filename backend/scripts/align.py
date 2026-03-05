@@ -15,10 +15,12 @@ Output JSON format (one entry per Chinese character):
     ]
 """
 
+# PYTHON_ARGCOMPLETE_OK
 import re
 import json
 import sys
 import time
+import argparse
 import difflib
 from pathlib import Path
 
@@ -155,13 +157,23 @@ def _find_next_time(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    if len(sys.argv) < 3:
-        print(__doc__)
-        sys.exit(1)
+    import argcomplete
 
-    audio_path  = Path(sys.argv[1])
-    script_path = Path(sys.argv[2])
-    output_path = Path(sys.argv[3]) if len(sys.argv) > 3 else audio_path.with_suffix(".json")
+    parser = argparse.ArgumentParser(
+        description="Generate character-level timestamps from audio + raw script using Whisper.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("audio_file", help="Path to audio file (e.g. data/samples/lesson1.mp3)")
+    parser.add_argument("script_file", help="Path to raw script text file (e.g. data/samples/lesson1_raw.txt)")
+    parser.add_argument("output_json", nargs="?", help="Output JSON path (default: same as audio with .json extension)")
+    parser.add_argument("--model", default="large-v3", choices=["tiny", "base", "small", "medium", "large-v3"],
+                        help="Whisper model size (default: large-v3)")
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+
+    audio_path  = Path(args.audio_file)
+    script_path = Path(args.script_file)
+    output_path = Path(args.output_json) if args.output_json else audio_path.with_suffix(".json")
 
     # --- Transcribe with Whisper ---
     try:
@@ -170,7 +182,7 @@ def main() -> None:
         print("Error: openai-whisper not installed. Run: pip install openai-whisper")
         sys.exit(1)
 
-    whisper_model = "large-v3" # medium, small
+    whisper_model = args.model
     t0 = time.time()
 
     def elapsed() -> str:
