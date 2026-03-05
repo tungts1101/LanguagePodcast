@@ -208,6 +208,9 @@ def cmd_list():
         print(f"{f['name']:<40} {size_str:>10}  {f['modifiedTime'][:10]}")
 
 
+BACKEND_ROOT = Path(__file__).parent.parent
+
+
 def cmd_download(file_name: str):
     service = get_service()
     files = list_files(service)
@@ -220,7 +223,10 @@ def cmd_download(file_name: str):
         print(f"Error: '{file_name}' not found in Drive folder.")
         print("Run 'python scripts/gdrive.py list' to see available files.")
         sys.exit(1)
-    path = download_file(service, match["id"], Path(match["name"]).name, SAMPLES_DIR)
+    # Mirror Drive's relative path locally under backend root
+    relative_path = Path(match["name"])
+    dest_dir = BACKEND_ROOT / relative_path.parent
+    path = download_file(service, match["id"], relative_path.name, dest_dir)
     print(f"Saved to {path}")
 
 
@@ -230,9 +236,11 @@ def cmd_download_all(extension: str = ".mp3"):
     if not files:
         print(f"No {extension} files found in Drive folder.")
         return
-    print(f"Downloading {len(files)} file(s) to {SAMPLES_DIR} ...")
+    print(f"Downloading {len(files)} file(s) ...")
     for f in files:
-        download_file(service, f["id"], Path(f["name"]).name, SAMPLES_DIR)
+        relative_path = Path(f["name"])
+        dest_dir = BACKEND_ROOT / relative_path.parent
+        download_file(service, f["id"], relative_path.name, dest_dir)
     print("Done.")
 
 
