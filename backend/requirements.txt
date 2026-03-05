@@ -3,7 +3,7 @@ uvicorn[standard]==0.32.1
 
 # Alignment script (scripts/align.py)
 openai-whisper
-# whisperx  # optional: more accurate timestamps — pip install whisperx
+whisperx
 
 # Enrichment script (scripts/enrich.py)
 pypinyin
