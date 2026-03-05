@@ -56,14 +56,27 @@ def get_service():
 
 # ── Operations ────────────────────────────────────────────────────────────────
 
-def list_files(service) -> list[dict]:
-    """Return all files in the target Drive folder."""
+def list_files_in_folder(service, folder_id: str) -> list[dict]:
+    """Return all items (files + subfolders) directly inside a folder."""
     results = service.files().list(
-        q=f"'{FOLDER_ID}' in parents and trashed=false",
+        q=f"'{folder_id}' in parents and trashed=false",
         fields="files(id, name, size, mimeType, modifiedTime)",
         orderBy="name",
     ).execute()
     return results.get("files", [])
+
+
+def list_files(service, folder_id: str = FOLDER_ID, prefix: str = "") -> list[dict]:
+    """Recursively return all files under folder_id with their relative path as 'name'."""
+    items = list_files_in_folder(service, folder_id)
+    files = []
+    for item in items:
+        relative_name = f"{prefix}{item['name']}"
+        if item["mimeType"] == "application/vnd.google-apps.folder":
+            files.extend(list_files(service, item["id"], prefix=f"{relative_name}/"))
+        else:
+            files.append({**item, "name": relative_name})
+    return files
 
 
 def download_file(service, file_id: str, file_name: str, dest_dir: Path) -> Path:
@@ -129,11 +142,16 @@ def cmd_list():
 def cmd_download(file_name: str):
     service = get_service()
     files = list_files(service)
-    match = next((f for f in files if f["name"] == file_name), None)
+    # Match by full relative path or just the base filename
+    match = next(
+        (f for f in files if f["name"] == file_name or Path(f["name"]).name == file_name),
+        None,
+    )
     if not match:
         print(f"Error: '{file_name}' not found in Drive folder.")
+        print("Run 'python scripts/gdrive.py list' to see available files.")
         sys.exit(1)
-    path = download_file(service, match["id"], match["name"], SAMPLES_DIR)
+    path = download_file(service, match["id"], Path(match["name"]).name, SAMPLES_DIR)
     print(f"Saved to {path}")
 
 
