@@ -18,6 +18,7 @@ Output JSON format (one entry per Chinese character):
 import re
 import json
 import sys
+import time
 import difflib
 from pathlib import Path
 
@@ -170,39 +171,57 @@ def main() -> None:
         sys.exit(1)
 
     whisper_model = "large-v3" # medium, small
-    print(f"Loading Whisper model {whisper_model} ...")
-    model = whisper.load_model(whisper_model)
+    t0 = time.time()
 
-    print(f"Transcribing {audio_path} ...")
+    def elapsed() -> str:
+        return f"{time.time() - t0:.1f}s"
+
+    def step(n: int, total: int, label: str) -> None:
+        print(f"\n[{n}/{total}] {label}")
+
+    TOTAL_STEPS = 4
+
+    # --- Step 1: Load model ---
+    step(1, TOTAL_STEPS, f"Loading Whisper model ({whisper_model}) ...")
+    model = whisper.load_model(whisper_model)
+    print(f"    Done ({elapsed()})")
+
+    # --- Step 2: Transcribe ---
+    # verbose=None shows Whisper's built-in tqdm progress bar (one tick per audio chunk)
+    step(2, TOTAL_STEPS, f"Transcribing {audio_path.name} ...")
+    audio = whisper.load_audio(str(audio_path))
+    duration = len(audio) / whisper.audio.SAMPLE_RATE
+    print(f"    Audio duration: {duration/60:.1f} min")
     result = model.transcribe(
         str(audio_path),
         language="zh",
         word_timestamps=True,
+        verbose=None,
     )
-
     all_words: list[dict] = []
     for seg in result["segments"]:
         all_words.extend(seg.get("words", []))
-
     whisper_chars = expand_words(all_words)
-    print(f"Whisper produced {len(whisper_chars)} Chinese characters")
+    print(f"    Whisper produced {len(whisper_chars)} Chinese characters ({elapsed()})")
 
-    # --- Parse raw script ---
+    # --- Step 3: Parse raw script ---
+    step(3, TOTAL_STEPS, f"Parsing raw script {script_path.name} ...")
     raw_text    = script_path.read_text(encoding="utf-8")
     raw_entries = parse_raw_script(raw_text)
     raw_chars   = extract_chars(raw_entries)
-    print(f"Raw script has {len(raw_chars)} Chinese characters")
+    print(f"    Raw script has {len(raw_chars)} Chinese characters ({elapsed()})")
 
-    # --- Align ---
-    print("Aligning sequences ...")
+    # --- Step 4: Align ---
+    step(4, TOTAL_STEPS, "Aligning sequences ...")
     aligned = align_sequences(whisper_chars, raw_chars)
+    print(f"    Aligned {len(aligned)} characters ({elapsed()})")
 
     # --- Write output ---
     output_path.write_text(
         json.dumps(aligned, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"Done. Written {len(aligned)} entries → {output_path}")
+    print(f"\nDone. Written {len(aligned)} entries → {output_path}  (total: {elapsed()})")
 
 
 if __name__ == "__main__":
