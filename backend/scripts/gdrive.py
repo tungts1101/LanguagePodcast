@@ -31,6 +31,7 @@ Usage:
 import sys
 import mimetypes
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -64,10 +65,22 @@ def get_service():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                str(OAUTH_CLIENT_PATH), SCOPES
+                str(OAUTH_CLIENT_PATH), SCOPES,
+                redirect_uri="http://localhost",
             )
-            # run_console: prints a URL to open in browser, then paste the code back
-            creds = flow.run_console()
+            auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
+            print("\n1. Open this URL in your browser:")
+            print(f"\n   {auth_url}\n")
+            print("2. After approving, your browser will redirect to http://localhost/...")
+            print("   (the page won't load — that's expected)")
+            print("3. Copy the full URL from the browser's address bar and paste it here.\n")
+            redirected = input("Paste the redirect URL: ").strip()
+            code = parse_qs(urlparse(redirected).query).get("code", [None])[0]
+            if not code:
+                print("Error: could not extract authorization code from URL.")
+                sys.exit(1)
+            flow.fetch_token(code=code)
+            creds = flow.credentials
         CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
         TOKEN_PATH.write_text(creds.to_json())
 
