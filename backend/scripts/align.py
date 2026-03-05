@@ -169,10 +169,9 @@ def main() -> None:
         print("Error: openai-whisper not installed. Run: pip install openai-whisper")
         sys.exit(1)
 
-    print("Loading Whisper model (medium) ...")
-    # model = whisper.load_model("medium")
-    # model = whisper.load_model("small")  # smaller model is faster for testing/demo
-    model = whisper.load_model("large-v3")
+    whisper_model = "large-v3" # medium, small
+    print(f"Loading Whisper model {whisper_model} ...")
+    model = whisper.load_model(whisper_model)
 
     print(f"Transcribing {audio_path} ...")
     result = model.transcribe(
