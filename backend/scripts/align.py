@@ -202,8 +202,7 @@ def transcribe_whisperx(audio_path: Path, model_name: str, elapsed) -> list[dict
     model = whisperx.load_model(model_name, device, language="zh", compute_type=compute_type)
 
     audio = whisperx.load_audio(str(audio_path))
-    import librosa
-    duration = len(audio) / 16000
+    duration = len(audio) / 16000  # whisperx loads at 16000 Hz
     print(f"    Audio duration: {duration/60:.1f} min")
     print(f"    Transcribing ...")
 
