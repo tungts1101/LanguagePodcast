@@ -1,5 +1,24 @@
 # Chinese Shadowing Practice Platform
 
+## Running Locally
+
+**Backend** (from `backend/`):
+```bash
+cd backend
+python -m uvicorn app.main:app --reload
+# runs at http://localhost:8000
+```
+
+**Frontend** (from `frontend/`):
+```bash
+cd frontend
+npm install   # first time only
+npm run dev
+# runs at http://localhost:3000
+```
+
+---
+
 ## Project Overview
 
 This project is a web application that helps users practice **Chinese listening and speaking using the shadowing method**.
