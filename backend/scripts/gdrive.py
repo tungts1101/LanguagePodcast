@@ -237,7 +237,8 @@ BACKEND_ROOT = Path(__file__).parent.parent
 def cmd_download(file_path: str):
     service = get_service()
     files = list_files(service)
-    # Match by exact relative path (e.g. data/samples/lesson1.mp3)
+    # Normalize to forward slashes for cross-platform compatibility
+    file_path = file_path.replace("\\", "/")
     match = next((f for f in files if f["name"] == file_path), None)
     if not match:
         print(f"Error: '{file_path}' not found in Drive folder.")
