@@ -51,11 +51,9 @@ Target folder: https://drive.google.com/drive/folders/19JY_X26pjwDYoe3iKuZ1AJTgR
      Token is saved to backend/credentials/token.json for future runs.
 """
 
-# PYTHON_ARGCOMPLETE_OK
 import sys
 import mimetypes
 import argparse
-import argcomplete
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
@@ -299,7 +297,6 @@ def main():
     p_ul = sub.add_parser("upload", help="Upload a local file to Drive")
     p_ul.add_argument("file_path", help="Local path relative to backend/ (e.g. data/samples/lesson1.json)")
 
-    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     if args.command == "list":

@@ -15,7 +15,6 @@ Output JSON format (one entry per Chinese character):
     ]
 """
 
-# PYTHON_ARGCOMPLETE_OK
 import re
 import json
 import sys
@@ -157,8 +156,6 @@ def _find_next_time(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    import argcomplete
-
     parser = argparse.ArgumentParser(
         description="Generate character-level timestamps from audio + raw script using Whisper.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -168,7 +165,6 @@ def main() -> None:
     parser.add_argument("output_json", nargs="?", help="Output JSON path (default: same as audio with .json extension)")
     parser.add_argument("--model", default="large-v3", choices=["tiny", "base", "small", "medium", "large-v3"],
                         help="Whisper model size (default: large-v3)")
-    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     audio_path  = Path(args.audio_file)

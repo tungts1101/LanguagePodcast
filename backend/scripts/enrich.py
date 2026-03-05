@@ -21,12 +21,10 @@ Usage:
   python scripts/enrich.py data/samples/lesson1.json --pinyin --translate en
 """
 
-# PYTHON_ARGCOMPLETE_OK
 import sys
 import json
 import time
 import argparse
-import argcomplete
 from pathlib import Path
 
 # Lang codes supported by deep-translator GoogleTranslator
@@ -92,7 +90,6 @@ def main() -> None:
     parser.add_argument("--pinyin", action="store_true", help="Generate pinyin file")
     parser.add_argument("--translate", metavar="LANG", choices=list(LANG_MAP.keys()),
                         help="Generate translation file for language code (e.g. en, vi)")
-    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     input_path = Path(args.input)
