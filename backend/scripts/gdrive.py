@@ -128,14 +128,50 @@ def download_file(service, file_id: str, file_name: str, dest_dir: Path) -> Path
     return dest_path
 
 
-def upload_file(service, local_path: Path, dest_name: str | None = None) -> str:
-    """Upload a local file to the target Drive folder, return the file ID."""
-    name = dest_name or local_path.name
+def get_or_create_folder(service, name: str, parent_id: str) -> str:
+    """Return the Drive folder ID for `name` inside `parent_id`, creating it if needed."""
+    existing = service.files().list(
+        q=f"'{parent_id}' in parents and name='{name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields="files(id)",
+    ).execute().get("files", [])
+    if existing:
+        return existing[0]["id"]
+    folder = service.files().create(
+        body={"name": name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent_id]},
+        fields="id",
+    ).execute()
+    return folder["id"]
+
+
+def resolve_drive_folder(service, relative_parts: list[str]) -> str:
+    """Walk (and create if needed) a folder path inside FOLDER_ID, return the leaf folder ID."""
+    folder_id = FOLDER_ID
+    for part in relative_parts:
+        folder_id = get_or_create_folder(service, part, folder_id)
+    return folder_id
+
+
+def upload_file(service, local_path: Path, relative_to: Path | None = None) -> str:
+    """
+    Upload local_path to Drive, mirroring its folder structure relative to `relative_to`.
+    If relative_to is given, the file is placed in the matching subfolder inside FOLDER_ID.
+    """
+    name = local_path.name
     mime = mimetypes.guess_type(str(local_path))[0] or "application/octet-stream"
+
+    # Resolve target folder in Drive
+    if relative_to:
+        try:
+            parts = list(local_path.relative_to(relative_to).parent.parts)
+        except ValueError:
+            parts = []
+    else:
+        parts = []
+    target_folder_id = resolve_drive_folder(service, parts) if parts else FOLDER_ID
 
     # Check if a file with the same name already exists (update instead of duplicate)
     existing = service.files().list(
-        q=f"'{FOLDER_ID}' in parents and name='{name}' and trashed=false",
+        q=f"'{target_folder_id}' in parents and name='{name}' and trashed=false",
         fields="files(id, name)",
     ).execute().get("files", [])
 
@@ -144,14 +180,15 @@ def upload_file(service, local_path: Path, dest_name: str | None = None) -> str:
     if existing:
         file_id = existing[0]["id"]
         service.files().update(fileId=file_id, media_body=media).execute()
-        print(f"  Updated: {name} (id={file_id})")
+        print(f"  Updated: {'/'.join(parts + [name])} (id={file_id})")
     else:
-        metadata = {"name": name, "parents": [FOLDER_ID]}
         result = service.files().create(
-            body=metadata, media_body=media, fields="id"
+            body={"name": name, "parents": [target_folder_id]},
+            media_body=media,
+            fields="id",
         ).execute()
         file_id = result["id"]
-        print(f"  Uploaded: {name} (id={file_id})")
+        print(f"  Uploaded: {'/'.join(parts + [name])} (id={file_id})")
 
     return file_id
 
@@ -202,10 +239,14 @@ def cmd_download_all(extension: str = ".mp3"):
 def cmd_upload(local_path_str: str):
     local_path = Path(local_path_str)
     if not local_path.exists():
-        print(f"Error: '{local_path}' does not exist.")
+        # Try resolving relative to backend root
+        local_path = Path(__file__).parent.parent / local_path_str
+    if not local_path.exists():
+        print(f"Error: '{local_path_str}' does not exist.")
         sys.exit(1)
+    backend_root = Path(__file__).parent.parent
     service = get_service()
-    upload_file(service, local_path)
+    upload_file(service, local_path.resolve(), relative_to=backend_root.resolve())
 
 
 def main():
