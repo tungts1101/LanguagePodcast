@@ -4,12 +4,15 @@ Google Drive utility for uploading and downloading audio samples.
 
 Target folder: https://drive.google.com/drive/folders/19JY_X26pjwDYoe3iKuZ1AJTgRh6Dt8Yr
 
-Authentication (service account — recommended for server use):
+Authentication (OAuth2 — uses your Google account's storage quota):
   1. Go to https://console.cloud.google.com/
   2. Create a project → Enable "Google Drive API"
-  3. IAM & Admin → Service Accounts → Create → download JSON key
-  4. Save the key as: backend/credentials/service_account.json
-  5. Share the Drive folder with the service account email (Editor access)
+  3. APIs & Services → Credentials → Create Credentials → OAuth client ID
+     → Application type: Desktop app → Download JSON
+  4. Save the downloaded file as: backend/credentials/oauth_client.json
+  5. First run will print a URL — open it in your browser, approve access,
+     then paste the authorization code back into the terminal.
+     A token is saved to backend/credentials/token.json for future runs.
 
 Usage:
   # List files in the folder
@@ -26,32 +29,48 @@ Usage:
 """
 
 import sys
-import os
 import mimetypes
 from pathlib import Path
 
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-FOLDER_ID = "19JY_X26pjwDYoe3iKuZ1AJTgRh6Dt8Yr"
-SCOPES = ["https://www.googleapis.com/auth/drive"]
-CREDENTIALS_PATH = Path(__file__).parent.parent / "credentials" / "service_account.json"
-SAMPLES_DIR = Path(__file__).parent.parent / "data" / "samples"
+FOLDER_ID         = "19JY_X26pjwDYoe3iKuZ1AJTgRh6Dt8Yr"
+SCOPES            = ["https://www.googleapis.com/auth/drive"]
+CREDENTIALS_DIR   = Path(__file__).parent.parent / "credentials"
+OAUTH_CLIENT_PATH = CREDENTIALS_DIR / "oauth_client.json"
+TOKEN_PATH        = CREDENTIALS_DIR / "token.json"
+SAMPLES_DIR       = Path(__file__).parent.parent / "data" / "samples"
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 def get_service():
-    if not CREDENTIALS_PATH.exists():
-        print(f"Error: credentials not found at {CREDENTIALS_PATH}")
+    if not OAUTH_CLIENT_PATH.exists():
+        print(f"Error: OAuth client file not found at {OAUTH_CLIENT_PATH}")
         print("See the docstring in this file for setup instructions.")
         sys.exit(1)
 
-    creds = service_account.Credentials.from_service_account_file(
-        str(CREDENTIALS_PATH), scopes=SCOPES
-    )
+    creds = None
+    if TOKEN_PATH.exists():
+        creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                str(OAUTH_CLIENT_PATH), SCOPES
+            )
+            # run_console: prints a URL to open in browser, then paste the code back
+            creds = flow.run_console()
+        CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
+        TOKEN_PATH.write_text(creds.to_json())
+
     return build("drive", "v3", credentials=creds)
 
 # ── Operations ────────────────────────────────────────────────────────────────
@@ -163,7 +182,7 @@ def cmd_download_all(extension: str = ".mp3"):
         return
     print(f"Downloading {len(files)} file(s) to {SAMPLES_DIR} ...")
     for f in files:
-        download_file(service, f["id"], f["name"], SAMPLES_DIR)
+        download_file(service, f["id"], Path(f["name"]).name, SAMPLES_DIR)
     print("Done.")
 
 
