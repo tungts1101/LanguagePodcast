@@ -51,6 +51,9 @@ backend/credentials/
 *.ogg
 *.flac
 
+# ── Sample data — synced via Google Drive ────────────────────────────────────
+backend/data/samples/*.json
+
 # ── Logs & Debug ─────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
