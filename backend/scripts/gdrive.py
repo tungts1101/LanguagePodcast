@@ -31,8 +31,8 @@ Target folder: https://drive.google.com/drive/folders/19JY_X26pjwDYoe3iKuZ1AJTgR
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   python scripts/gdrive.py list
-  python scripts/gdrive.py download lesson1.mp3
-  python scripts/gdrive.py download lesson1_pinyin.json
+  python scripts/gdrive.py download data/samples/lesson1.mp3
+  python scripts/gdrive.py download data/samples/lesson1_pinyin.json
   python scripts/gdrive.py download-all .json
   python scripts/gdrive.py upload data/samples/lesson1.json
   python scripts/gdrive.py upload data/samples/lesson1_en.json
@@ -234,19 +234,15 @@ def cmd_list():
 BACKEND_ROOT = Path(__file__).parent.parent
 
 
-def cmd_download(file_name: str):
+def cmd_download(file_path: str):
     service = get_service()
     files = list_files(service)
-    # Match by full relative path or just the base filename
-    match = next(
-        (f for f in files if f["name"] == file_name or Path(f["name"]).name == file_name),
-        None,
-    )
+    # Match by exact relative path (e.g. data/samples/lesson1.mp3)
+    match = next((f for f in files if f["name"] == file_path), None)
     if not match:
-        print(f"Error: '{file_name}' not found in Drive folder.")
+        print(f"Error: '{file_path}' not found in Drive folder.")
         print("Run 'python scripts/gdrive.py list' to see available files.")
         sys.exit(1)
-    # Mirror Drive's relative path locally under backend root
     relative_path = Path(match["name"])
     dest_dir = BACKEND_ROOT / relative_path.parent
     path = download_file(service, match["id"], relative_path.name, dest_dir)
