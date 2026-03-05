@@ -4,6 +4,10 @@ uvicorn[standard]==0.32.1
 # Alignment script (scripts/align.py)
 openai-whisper
 
+# Enrichment script (scripts/enrich.py)
+pypinyin
+deep-translator
+
 # Google Drive integration (scripts/gdrive.py)
 google-api-python-client
 google-auth-httplib2

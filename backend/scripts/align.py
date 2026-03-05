@@ -170,9 +170,9 @@ def main() -> None:
         sys.exit(1)
 
     print("Loading Whisper model (medium) ...")
-    model = whisper.load_model("medium")
+    # model = whisper.load_model("medium")
     # model = whisper.load_model("small")  # smaller model is faster for testing/demo
-    # model = whisper.load_model("large-v3")
+    model = whisper.load_model("large-v3")
 
     print(f"Transcribing {audio_path} ...")
     result = model.transcribe(
